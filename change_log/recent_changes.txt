@@ -1,0 +1,54 @@
+Fixed gauge text positioning: uniform placement above the needle tip using a consistent radius offset; improved visibility with a white stroke outline.
+Added routing:
+Installed react-router-dom
+Created Home, Gauges, and Charts pages
+Updated App.jsx with routing
+Created Home page overview:
+Ranked stock list by gauge score (highest first)
+Each item shows: rank, ticker, score, compact gauge thumbnail, chart thumbnail
+Click to expand full gauge with details and full chart
+Created separate pages:
+Gauges page: collection of all gauges
+Charts page: collection of all charts
+Added Navigation component:
+Links to Home, Gauges, Charts
+Dark mode toggle in top right
+Active route highlighting
+Implemented dark mode:
+Persists to localStorage
+Dark styles for all components
+Smooth transitions
+Created compact components:
+ValueGaugeCompact: smaller gauge with thicker stroke (12px vs 20px)
+Compact chart mode in PERatioChart: hides axes, legends, and tooltips
+Improved gauge visuals:
+Three color zones: Red (0–50%), Yellow (50–75%), Green (75–100%)
+Improved text visibility with stroke outline
+Better alignment using consistent calculation functions
+Ready to test. The app includes:
+Home page with ranked, expandable stock list
+Separate Gauges and Charts pages accessible via navigation
+Dark mode toggle that persists
+Improved gauge text visibility and positioning
+All components support dark mode with appropriate color adjustments.
+
+Summary of Changes:
+Removed all yfinance imports and usage from:
+valuation.py - Now uses Stooq exclusively for price data
+finance_plots.py - Replaced all yfinance calls with Stooq
+distribute2.py - Updated to use Stooq (EPS features disabled since Stooq doesn't provide EPS)
+app.py - Updated Flask API to use Stooq
+pe_comparison_visualizer.py - Replaced yfinance with Stooq
+test.py - Updated test to use Stooq
+Updated requirements.txt - Removed yfinance==0.2.28
+Features affected:
+Price data: Now uses Stooq exclusively (no fallback)
+Auto EPS source: Disabled (Stooq doesn't provide EPS data) - users must use manual EPS
+Forward P/E: Disabled (requires yfinance data)
+S&P 500 P/E: Disabled (requires yfinance data)
+What still works:
+All price data fetching via Stooq
+Manual EPS-based calculations (P/E ratios, valuations)
+All plotting functions (using manual EPS)
+All API endpoints (using manual EPS)
+The codebase now uses Stooq as the sole data source for price data. All yfinance dependencies have been removed. The old implementation in distribute2.py is preserved and works with Stooq.

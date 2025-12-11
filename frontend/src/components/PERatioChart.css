@@ -1,0 +1,66 @@
+.pe-ratio-chart {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+body.dark-mode .pe-ratio-chart {
+  background: #2d2d2d;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.pe-ratio-chart.compact {
+  height: 100px;
+  padding: 5px;
+}
+
+.pe-ratio-chart.compact .recharts-wrapper {
+  height: 100px !important;
+}
+
+.chart-title {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  transition: color 0.2s;
+}
+
+body.dark-mode .chart-title {
+  color: #e0e0e0;
+}
+
+.custom-tooltip {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .custom-tooltip {
+  background-color: rgba(45, 45, 45, 0.95);
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.tooltip-label {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+body.dark-mode .pe-ratio-chart .recharts-cartesian-grid-horizontal line,
+body.dark-mode .pe-ratio-chart .recharts-cartesian-grid-vertical line {
+  stroke: #444;
+}
+
+body.dark-mode .pe-ratio-chart .recharts-text {
+  fill: #999;
+}
+
+body.dark-mode .pe-ratio-chart .recharts-legend-wrapper {
+  color: #e0e0e0;
+}
+
