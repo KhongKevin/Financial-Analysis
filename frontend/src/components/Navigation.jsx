@@ -8,6 +8,7 @@ function Navigation({ darkMode, toggleDarkMode }) {
   return (
     <nav className={`navigation ${darkMode ? 'dark' : ''}`}>
       <div className="nav-content">
+      <div className="nav-links">
         <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
           Home
         </Link>
@@ -17,13 +18,16 @@ function Navigation({ darkMode, toggleDarkMode }) {
         <Link to="/charts" className={`nav-link ${location.pathname === '/charts' ? 'active' : ''}`}>
           Charts
         </Link>
+      </div>
         <button className="dark-mode-toggle" onClick={toggleDarkMode} aria-label="Toggle dark mode">
           {darkMode ? '☀️' : '🌙'}
         </button>
       </div>
+      
     </nav>
   )
 }
 
 export default Navigation
+
 

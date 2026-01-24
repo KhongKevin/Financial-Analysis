@@ -1,179 +1,108 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
+import '../lib/gauge.js'
 import './ValueGauge.css'
 
+const getPointerColor = () =>
+  document.body.classList.contains('dark-mode') ? '#ffffff' : '#000000'
+
+
 function ValueGauge({ ticker, score, details }) {
-  // score is 0-100, where 0 is on the left, 100 is on the right
-  // We need to draw a semicircle from 180° (left) to 0° (right)
-  // Score 0 = 180°, Score 100 = 0°
+  const canvasRef = useRef(null)
+  const gaugeRef = useRef(null)
+  const textFieldRef = useRef(null)
+  const wrapperRef = useRef(null)
+  useEffect(() => {
+    if (!gaugeRef.current) return
   
-  const radius = 100
-  const centerX = 120
-  const centerY = 120
-  const strokeWidth = 20
+    const updateTheme = () => {
+      const color = getPointerColor()
   
-  // Helper function to convert percentage (0-100) to angle in degrees
-  // 0% (left) = 180°, 100% (right) = 0°
-  const percentToAngle = (percent) => 180 - (percent / 100) * 180
+      gaugeRef.current.setOptions({
+        pointer: { color }
+      })
   
-  // Helper function to get point on arc from angle
-  const angleToPoint = (angleDeg) => {
-    const angleRad = (angleDeg * Math.PI) / 180
-    return {
-      x: centerX + radius * Math.cos(angleRad),
-      y: centerY - radius * Math.sin(angleRad)
+      gaugeRef.current.render()
     }
-  }
   
-  // Helper function to create arc path
-  const createArc = (startPercent, endPercent) => {
-    const startAngle = percentToAngle(startPercent)
-    const endAngle = percentToAngle(endPercent)
-    const startPoint = angleToPoint(startAngle)
-    const endPoint = angleToPoint(endAngle)
-    const largeArc = endPercent - startPercent > 50 ? 1 : 0
-    return `M ${startPoint.x} ${startPoint.y} A ${radius} ${radius} 0 ${largeArc} 1 ${endPoint.x} ${endPoint.y}`
-  }
+    updateTheme()
   
-  // Calculate score angle and position
-  const scoreAngle = percentToAngle(score)
-  const scorePoint = angleToPoint(scoreAngle)
+    // Watch for class changes on <body>
+    const observer = new MutationObserver(updateTheme)
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
   
-  // Calculate text position - place it above the needle tip with consistent offset
-  // Use a fixed radius offset from the center for uniform positioning
-  const textRadius = radius + 35
-  const textAngleRad = (scoreAngle * Math.PI) / 180
-  const textX = centerX + textRadius * Math.cos(textAngleRad)
-  const textY = centerY - textRadius * Math.sin(textAngleRad)
-  
-  // Calculate label positions
-  const label0Point = angleToPoint(180)
-  const label100Point = angleToPoint(0)
-  const label25Point = angleToPoint(percentToAngle(25))
-  const label50Point = angleToPoint(percentToAngle(50))
-  const label75Point = angleToPoint(percentToAngle(75))
-  
+    return () => observer.disconnect()
+  }, [])
+  useEffect(() => {
+    if (!canvasRef.current || !window.Gauge) return
+
+    // Initialize gauge
+    if (!gaugeRef.current) {
+      // Create text field element for displaying the score
+      const textFieldEl = document.createElement('div')
+      textFieldEl.className = 'gauge-text-field'
+      // Append to wrapper if available, otherwise append to canvas parent
+      const parent = wrapperRef.current || canvasRef.current.parentNode
+      if (parent) {
+        parent.appendChild(textFieldEl)
+      }
+      textFieldRef.current = textFieldEl
+
+      // Initialize gauge with semicircle configuration
+      gaugeRef.current = new window.Gauge(canvasRef.current)
+      gaugeRef.current.setOptions({
+        angle: 0, // Full semicircle from left to right (180 degrees)
+        lineWidth: 0.2,
+        radiusScale: 1.0,
+        pointer: {
+          length: 0.7,
+          strokeWidth: 0.04,
+          iconScale: 1,
+          color: getPointerColor()
+        },
+        limitMax: true,
+        limitMin: true,
+        strokeColor: '#e0e0e0',
+        highDpiSupport: true,
+        staticZones: [
+          { strokeStyle: '#dc3545', min: 0, max: 50 },
+          { strokeStyle: '#ffc107', min: 50, max: 75 },
+          { strokeStyle: '#28a745', min: 75, max: 100 }
+        ],
+        staticLabels: {
+          font: '12px sans-serif',
+          labels: [0, 25, 50, 75, 100],
+          fractionDigits: 0,
+          color: getPointerColor()
+        },
+        fontSize: 24
+      })
+      gaugeRef.current.maxValue = 100
+      gaugeRef.current.minValue = 0
+      gaugeRef.current.setTextField(textFieldEl, 0)
+    }
+
+    // Update gauge value
+    if (gaugeRef.current && typeof score === 'number') {
+      gaugeRef.current.set(score)
+    }
+
+    return () => {
+      // Cleanup: remove text field if component unmounts
+      if (textFieldRef.current && textFieldRef.current.parentNode) {
+        textFieldRef.current.parentNode.removeChild(textFieldRef.current)
+      }
+    }
+  }, [score])
+
   return (
     <div className="value-gauge">
       <h3 className="gauge-title">{ticker}</h3>
-      <svg width="240" height="140" className="gauge-svg" viewBox="0 0 240 140">
-        <defs>
-          {/* Background circle for perfect alignment */}
-          <circle id="gauge-arc" cx={centerX} cy={centerY} r={radius} fill="none" />
-          {/* Text background filter for better visibility */}
-          <filter x="-50%" y="-50%" width="200%" height="200%" id="textbg">
-            <feFlood floodColor="white" floodOpacity="0.9"/>
-            <feComposite in="SourceGraphic"/>
-          </filter>
-        </defs>
-        
-        {/* Background semicircle (gray) */}
-        <path
-          d={createArc(0, 100)}
-          fill="none"
-          stroke="#e0e0e0"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        
-        {/* Red zone: 0-50% */}
-        <path
-          d={createArc(0, 50)}
-          fill="none"
-          stroke="#dc3545"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        
-        {/* Yellow zone: 50-75% */}
-        <path
-          d={createArc(50, 75)}
-          fill="none"
-          stroke="#ffc107"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        
-        {/* Green zone: 75-100% */}
-        <path
-          d={createArc(75, 100)}
-          fill="none"
-          stroke="#28a745"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        
-        {/* Score marker line (pointer) */}
-        <line
-          x1={centerX}
-          y1={centerY}
-          x2={scorePoint.x}
-          y2={scorePoint.y}
-          stroke="#333"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-        
-        {/* Score text - with background for visibility */}
-        <text
-          x={textX}
-          y={textY}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="gauge-score-text"
-          fontSize="16"
-          fontWeight="bold"
-          filter="url(#textbg)"
-        >
-          {score.toFixed(0)}%
-        </text>
-        
-        {/* Labels: 0%, 25%, 50%, 75%, 100% */}
-        <text
-          x={label0Point.x}
-          y={label0Point.y + 15}
-          textAnchor="middle"
-          className="gauge-label"
-          fontSize="11"
-        >
-          0%
-        </text>
-        <text
-          x={label25Point.x}
-          y={label25Point.y - 8}
-          textAnchor="middle"
-          className="gauge-label"
-          fontSize="11"
-        >
-          25%
-        </text>
-        <text
-          x={label50Point.x}
-          y={label50Point.y - 8}
-          textAnchor="middle"
-          className="gauge-label"
-          fontSize="11"
-        >
-          50%
-        </text>
-        <text
-          x={label75Point.x}
-          y={label75Point.y - 8}
-          textAnchor="middle"
-          className="gauge-label"
-          fontSize="11"
-        >
-          75%
-        </text>
-        <text
-          x={label100Point.x}
-          y={label100Point.y + 15}
-          textAnchor="middle"
-          className="gauge-label"
-          fontSize="11"
-        >
-          100%
-        </text>
-      </svg>
+      <div className="gauge-wrapper" ref={wrapperRef}>
+        <canvas ref={canvasRef} width="240" height="120" className="gauge-canvas"></canvas>
+      </div>
       
       {details && (
         <div className="gauge-details">

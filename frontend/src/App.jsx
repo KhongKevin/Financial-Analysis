@@ -27,8 +27,8 @@ function App() {
 
   return (
     <Router>
+      <Navigation darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       <div className="app">
-        <Navigation darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/gauges" element={<Gauges />} />

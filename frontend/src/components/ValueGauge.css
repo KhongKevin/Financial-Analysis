@@ -26,31 +26,32 @@ body.dark-mode .gauge-title {
   color: #e0e0e0;
 }
 
-.gauge-svg {
+.gauge-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin: 10px 0;
 }
 
-.gauge-score-text {
-  fill: #333;
-  transition: fill 0.2s;
-  paint-order: stroke fill;
-  stroke: white;
-  stroke-width: 3px;
-  stroke-linejoin: round;
+.gauge-canvas {
+  display: block;
 }
 
-body.dark-mode .gauge-score-text {
-  fill: #fff;
-  stroke: #1a1a1a;
+.gauge-text-field {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+  pointer-events: none;
+  transition: color 0.2s;
 }
 
-.gauge-label {
-  fill: #666;
-  transition: fill 0.2s;
-}
-
-body.dark-mode .gauge-label {
-  fill: #999;
+body.dark-mode .gauge-text-field {
+  color: #ffffff;
 }
 
 .gauge-details {
@@ -96,25 +97,31 @@ body.dark-mode .detail-value {
   gap: 5px;
 }
 
-.gauge-svg-compact {
-  margin: 0;
+.gauge-wrapper-compact {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.gauge-svg-compact .gauge-background {
-  opacity: 0.2;
+.gauge-canvas-compact {
+  display: block;
 }
 
-body.dark-mode .gauge-svg-compact .gauge-background {
-  opacity: 0.3;
+.gauge-text-field-compact {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffffff;
+  pointer-events: none;
+  transition: color 0.2s;
 }
 
-.gauge-score-text-compact {
-  fill: #333;
-  transition: fill 0.2s;
-}
-
-body.dark-mode .gauge-score-text-compact {
-  fill: #fff;
+body.dark-mode .gauge-text-field-compact {
+  color: #ffffff;
 }
 
 .gauge-ticker-compact {

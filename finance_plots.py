@@ -42,39 +42,66 @@ def load_manual_eps(filename: str = "EPS_manual.txt") -> dict:
 
 def _get_price_data_stooq(ticker: str, years: int = None, start_date: str = None, end_date: str = None) -> pd.DataFrame:
     """
-    Get price data from Stooq.
+    Get price data from Stooq with caching.
     Can filter by years or by start_date/end_date.
     """
-    try:
-        stooq_ticker = ticker if '.' in ticker else f"{ticker}.US"
-        url = f"https://stooq.com/q/d/l/?s={stooq_ticker}&i=d"
-        
-        with urllib.request.urlopen(url, timeout=10) as response:
-            data = response.read().decode('utf-8')
-        
-        df = pd.read_csv(io.StringIO(data))
-        if df.empty or 'Close' not in df.columns:
-            return pd.DataFrame()
-        
-        df['Date'] = pd.to_datetime(df['Date'])
-        df = df.set_index('Date').sort_index()
-        
-        # Filter by date range if provided
-        if start_date is not None or end_date is not None:
-            if start_date:
-                start = pd.to_datetime(start_date)
-                df = df[df.index >= start]
-            if end_date:
-                end = pd.to_datetime(end_date)
-                df = df[df.index <= end]
-        elif years is not None:
-            cutoff_date = df.index.max() - pd.DateOffset(years=years)
-            df = df[df.index >= cutoff_date]
-        
-        return df
-    except Exception as e:
-        print(f"Stooq failed for {ticker}: {e}")
-        return pd.DataFrame()
+    from cache_utils import is_cache_valid, load_from_cache, save_to_cache, cache_covers_range
+    
+    # Check if we have valid cached data
+    cached_df = pd.DataFrame()
+    needs_refresh = True
+    if is_cache_valid(ticker):
+        cached_df = load_from_cache(ticker)
+        # Check if cache covers the requested range
+        if not cached_df.empty and cache_covers_range(ticker, years=years, start_date=start_date, end_date=end_date):
+            needs_refresh = False
+    
+    # Fetch from Stooq if cache is invalid or empty
+    if needs_refresh:
+        try:
+            stooq_ticker = ticker if '.' in ticker else f"{ticker}.US"
+            url = f"https://stooq.com/q/d/l/?s={stooq_ticker}&i=d"
+            
+            with urllib.request.urlopen(url, timeout=10) as response:
+                data = response.read().decode('utf-8')
+            
+            df = pd.read_csv(io.StringIO(data))
+            if df.empty or 'Close' not in df.columns:
+                # If Stooq fails but we have cached data, use that
+                if not cached_df.empty:
+                    print(f"Using cached data for {ticker}")
+                else:
+                    return pd.DataFrame()
+            else:
+                df['Date'] = pd.to_datetime(df['Date'])
+                df = df.set_index('Date').sort_index()
+                
+                # Save full dataset to cache
+                save_to_cache(ticker, df)
+                cached_df = df
+        except Exception as e:
+            print(f"Stooq failed for {ticker}: {e}")
+            # If Stooq fails but we have cached data, use that
+            if not cached_df.empty:
+                print(f"Using cached data for {ticker}")
+            else:
+                return pd.DataFrame()
+    
+    # Filter cached data by requested date range
+    df = cached_df.copy()
+    
+    if start_date is not None or end_date is not None:
+        if start_date:
+            start = pd.to_datetime(start_date)
+            df = df[df.index >= start]
+        if end_date:
+            end = pd.to_datetime(end_date)
+            df = df[df.index <= end]
+    elif years is not None:
+        cutoff_date = df.index.max() - pd.DateOffset(years=years)
+        df = df[df.index >= cutoff_date]
+    
+    return df
 
 
 def _get_price_history(ticker: str, years: int) -> pd.DataFrame:

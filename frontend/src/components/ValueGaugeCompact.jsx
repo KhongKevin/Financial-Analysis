@@ -1,108 +1,106 @@
-import React from 'react'
-import './ValueGauge.css'
+import React, { useEffect, useRef } from 'react'
+import '../lib/gauge.js'
+//import './ValueGaugeCompact.css'
+
+const getPointerColor = () =>
+  document.body.classList.contains('dark-mode') ? '#ffffff' : '#000000'
 
 function ValueGaugeCompact({ ticker, score }) {
-  // Compact version of gauge for list view
-  // Smaller size with thicker stroke for visibility
-  const radius = 40
-  const centerX = 50
-  const centerY = 50
-  const strokeWidth = 12 // Thicker for visibility at small size
+  const canvasRef = useRef(null)
+  const gaugeRef = useRef(null)
+  const textFieldRef = useRef(null)
+  const wrapperRef = useRef(null)
+  useEffect(() => {
+    if (!gaugeRef.current) return
   
-  // Helper function to convert percentage (0-100) to angle in degrees
-  const percentToAngle = (percent) => 180 - (percent / 100) * 180
+    const updateTheme = () => {
+      const color = getPointerColor()
   
-  // Helper function to get point on arc from angle
-  const angleToPoint = (angleDeg) => {
-    const angleRad = (angleDeg * Math.PI) / 180
-    return {
-      x: centerX + radius * Math.cos(angleRad),
-      y: centerY - radius * Math.sin(angleRad)
+      gaugeRef.current.setOptions({
+        pointer: { color }
+      })
+  
+      gaugeRef.current.render()
     }
-  }
   
-  // Helper function to create arc path
-  const createArc = (startPercent, endPercent) => {
-    const startAngle = percentToAngle(startPercent)
-    const endAngle = percentToAngle(endPercent)
-    const startPoint = angleToPoint(startAngle)
-    const endPoint = angleToPoint(endAngle)
-    const largeArc = endPercent - startPercent > 50 ? 1 : 0
-    return `M ${startPoint.x} ${startPoint.y} A ${radius} ${radius} 0 ${largeArc} 1 ${endPoint.x} ${endPoint.y}`
-  }
+    updateTheme()
   
-  // Calculate score angle and position
-  const scoreAngle = percentToAngle(score)
-  const scorePoint = angleToPoint(scoreAngle)
+    // Watch for class changes on <body>
+    const observer = new MutationObserver(updateTheme)
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
   
+    return () => observer.disconnect()
+  }, [])
+  useEffect(() => {
+    if (!canvasRef.current || !window.Gauge) return
+
+    // Initialize gauge
+    if (!gaugeRef.current) {
+      // Create text field element for displaying the score
+      const textFieldEl = document.createElement('div')
+      textFieldEl.className = 'gauge-text-field-compact'
+      // Append to wrapper if available, otherwise append to canvas parent
+      const parent = wrapperRef.current || canvasRef.current.parentNode
+      if (parent) {
+        parent.appendChild(textFieldEl)
+      }
+      textFieldRef.current = textFieldEl
+
+      // Initialize gauge with semicircle configuration (compact size)
+      gaugeRef.current = new window.Gauge(canvasRef.current)
+      gaugeRef.current.setOptions({
+        angle: 0, // Full semicircle from left to right (180 degrees)
+        lineWidth: 0.25,
+        radiusScale: 1.0,
+        pointer: {
+          length: 0.6,
+          strokeWidth: 0.05,
+          iconScale: 1,
+          color: getPointerColor()
+        },
+        
+        limitMax: true,
+        limitMin: true,
+        strokeColor: '#e0e0e0',
+        highDpiSupport: true,
+        staticZones: [
+          { strokeStyle: '#dc3545', min: 0, max: 50 },
+          { strokeStyle: '#ffc107', min: 50, max: 75 },
+          { strokeStyle: '#28a745', min: 75, max: 100 }
+        ],
+        fontSize: 12
+      })
+      gaugeRef.current.maxValue = 100
+      gaugeRef.current.minValue = 0
+      gaugeRef.current.setTextField(textFieldEl, 0)
+    }
+
+    // Update gauge value
+    if (gaugeRef.current && typeof score === 'number') {
+      gaugeRef.current.set(score)
+    }
+
+    return () => {
+      // Cleanup: remove text field if component unmounts
+      if (textFieldRef.current && textFieldRef.current.parentNode) {
+        textFieldRef.current.parentNode.removeChild(textFieldRef.current)
+      }
+    }
+  }, [score])
+
   return (
     <div className="value-gauge-compact">
-      <svg width="100" height="60" className="gauge-svg-compact" viewBox="0 0 100 60">
-        {/* Background semicircle (gray) */}
-        <path
-          d={createArc(0, 100)}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          className="gauge-background"
-        />
-        
-        {/* Red zone: 0-50% */}
-        <path
-          d={createArc(0, 50)}
-          fill="none"
-          stroke="#dc3545"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        
-        {/* Yellow zone: 50-75% */}
-        <path
-          d={createArc(50, 75)}
-          fill="none"
-          stroke="#ffc107"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        
-        {/* Green zone: 75-100% */}
-        <path
-          d={createArc(75, 100)}
-          fill="none"
-          stroke="#28a745"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        
-        {/* Score marker line (pointer) */}
-        <line
-          x1={centerX}
-          y1={centerY}
-          x2={scorePoint.x}
-          y2={scorePoint.y}
-          stroke="#333"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        
-        {/* Score text */}
-        <text
-          x={centerX}
-          y={centerY + 8}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="gauge-score-text-compact"
-          fontSize="10"
-          fontWeight="bold"
-        >
-          {score.toFixed(0)}%
-        </text>
-      </svg>
+      <div className="gauge-wrapper-compact" ref={wrapperRef}>
+        <canvas ref={canvasRef} width="100" height="60" className="gauge-canvas-compact"></canvas>
+      </div>
       <div className="gauge-ticker-compact">{ticker}</div>
     </div>
   )
 }
 
 export default ValueGaugeCompact
+
 
