@@ -264,6 +264,7 @@ def value_PE_avg(ticker, years=1, filename="EPS_manual.txt"):
         "max_pe": max_pe,
         "score_avg": score_avg,
         "score_range": score_range,
+        "data_points": len(df_window)
     }
 
     return score, details

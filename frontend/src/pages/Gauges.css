@@ -2,4 +2,11 @@
   padding: 20px 0;
 }
 
+body.dark-mode .section-title {
+  color: #fff;
+}
 
+/* Ensure controls text is visible */
+body.dark-mode .controls label {
+  color: rgba(255, 255, 255, 0.8);
+}

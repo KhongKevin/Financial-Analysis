@@ -13,26 +13,26 @@ function ValueGauge({ ticker, score, details }) {
   const wrapperRef = useRef(null)
   useEffect(() => {
     if (!gaugeRef.current) return
-  
+
     const updateTheme = () => {
       const color = getPointerColor()
-  
+
       gaugeRef.current.setOptions({
         pointer: { color }
       })
-  
+
       gaugeRef.current.render()
     }
-  
+
     updateTheme()
-  
+
     // Watch for class changes on <body>
     const observer = new MutationObserver(updateTheme)
     observer.observe(document.body, {
       attributes: true,
       attributeFilter: ['class']
     })
-  
+
     return () => observer.disconnect()
   }, [])
   useEffect(() => {
@@ -57,7 +57,7 @@ function ValueGauge({ ticker, score, details }) {
         lineWidth: 0.2,
         radiusScale: 1.0,
         pointer: {
-          length: 0.7,
+          length: 0.55,
           strokeWidth: 0.04,
           iconScale: 1,
           color: getPointerColor()
@@ -66,11 +66,14 @@ function ValueGauge({ ticker, score, details }) {
         limitMin: true,
         strokeColor: '#e0e0e0',
         highDpiSupport: true,
-        staticZones: [
-          { strokeStyle: '#dc3545', min: 0, max: 50 },
-          { strokeStyle: '#ffc107', min: 50, max: 75 },
-          { strokeStyle: '#28a745', min: 75, max: 100 }
+        // Gradient Colors: Red -> Yellow -> Green
+        percentColors: [
+          [0.0, "#dc3545"],
+          [0.50, "#ffc107"],
+          [1.0, "#28a745"]
         ],
+        staticZones: null, // Disable static zones for gradient
+        generateGradient: true,
         staticLabels: {
           font: '12px sans-serif',
           labels: [0, 25, 50, 75, 100],
@@ -103,7 +106,7 @@ function ValueGauge({ ticker, score, details }) {
       <div className="gauge-wrapper" ref={wrapperRef}>
         <canvas ref={canvasRef} width="240" height="120" className="gauge-canvas"></canvas>
       </div>
-      
+
       {details && (
         <div className="gauge-details">
           <div className="detail-item">

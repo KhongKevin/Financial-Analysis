@@ -1,14 +1,14 @@
 .pe-ratio-chart {
-  background: white;
+  background: transparent;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); REMOVED */
   transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 body.dark-mode .pe-ratio-chart {
-  background: #2d2d2d;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: transparent;
+  box-shadow: none;
 }
 
 .pe-ratio-chart.compact {
@@ -24,12 +24,12 @@ body.dark-mode .pe-ratio-chart {
   margin: 0 0 20px 0;
   font-size: 20px;
   font-weight: bold;
-  color: #333;
+  color: #fff;
   transition: color 0.2s;
 }
 
 body.dark-mode .chart-title {
-  color: #e0e0e0;
+  color: #fff;
 }
 
 .custom-tooltip {
@@ -63,4 +63,3 @@ body.dark-mode .pe-ratio-chart .recharts-text {
 body.dark-mode .pe-ratio-chart .recharts-legend-wrapper {
   color: #e0e0e0;
 }
-

@@ -66,7 +66,7 @@ function Charts() {
             style={{ width: '60px', marginLeft: '5px' }}
           />
         </label>
-        <button onClick={handleLoadCharts} disabled={loading}>
+        <button className="load-button" onClick={handleLoadCharts} disabled={loading}>
           {loading ? 'Loading...' : 'Load Charts'}
         </button>
       </div>
@@ -79,7 +79,25 @@ function Charts() {
         <section className="section">
           <h2 className="section-title">P/E Ratios Over Time</h2>
           {chartData.map((item) => (
-            <div key={item.ticker} className="chart-container">
+            <div key={item.ticker} className="glass-card" style={{ position: 'relative' }}>
+              {item.data_points < 8 && (
+                <span
+                  className="data-warning"
+                  title="Using annual data instead of quarterly"
+                  style={{
+                    position: 'absolute',
+                    top: '15px',
+                    right: '15px',
+                    fontSize: '1.2rem',
+                    color: '#FFD700',
+                    opacity: 0.8,
+                    cursor: 'help',
+                    zIndex: 10
+                  }}
+                >
+                  ⚠
+                </span>
+              )}
               <PERatioChart
                 ticker={item.ticker}
                 peTtm={item.pe_ttm}

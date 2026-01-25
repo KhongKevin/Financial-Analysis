@@ -67,7 +67,7 @@ function Gauges() {
             style={{ width: '60px', marginLeft: '5px' }}
           />
         </label>
-        <button onClick={handleLoadGauges} disabled={loading}>
+        <button className="load-button" onClick={handleLoadGauges} disabled={loading}>
           {loading ? 'Loading...' : 'Load Gauges'}
         </button>
       </div>
@@ -81,12 +81,33 @@ function Gauges() {
           <h2 className="section-title">Valuation Scores (P/E Avg)</h2>
           <div className="gauge-container">
             {gaugeData.map((item) => (
-              <ValueGauge
-                key={item.ticker}
-                ticker={item.ticker}
-                score={item.score_100}
-                details={item.details}
-              />
+              <div key={item.ticker} className="glass-card">
+                <div style={{ position: 'relative' }}>
+                  {item.details && item.details.data_points < 8 && (
+                    <span
+                      className="data-warning"
+                      title="Using annual data instead of quarterly"
+                      style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        fontSize: '1.2rem',
+                        color: '#FFD700',
+                        opacity: 0.8,
+                        cursor: 'help',
+                        zIndex: 10
+                      }}
+                    >
+                      ⚠
+                    </span>
+                  )}
+                  <ValueGauge
+                    ticker={item.ticker}
+                    score={item.score_100}
+                    details={item.details}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </section>

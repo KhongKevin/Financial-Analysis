@@ -11,38 +11,9 @@
   justify-content: center;
 }
 
-.controls input,
-.controls button,
-.controls select {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: border-color 0.2s, background-color 0.2s;
-}
+/* .controls layout is in index.css */
 
-body.dark-mode .controls input,
-body.dark-mode .controls select {
-  background-color: #3d3d3d;
-  border-color: #555;
-  color: #e0e0e0;
-}
-
-.controls button {
-  background-color: #007bff;
-  color: white;
-  cursor: pointer;
-  border: none;
-}
-
-.controls button:hover {
-  background-color: #0056b3;
-}
-
-.controls button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
+/* .load-button styles moved to index.css */
 
 .error {
   color: red;
@@ -63,64 +34,110 @@ body.dark-mode .error {
 }
 
 .stock-item {
-  background: white;
+  /* Glass Card - Performance Optimized (No Blur) */
+  background: rgba(255, 255, 255, 0.05);
+  /* backdrop-filter: blur(10px); REMOVED FOR PERFORMANCE */
+  /* -webkit-backdrop-filter: blur(10px); REMOVED FOR PERFORMANCE */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  transition: box-shadow 0.2s, background-color 0.2s;
+  transition: all 0.2s;
+  color: white;
 }
 
 body.dark-mode .stock-item {
-  background: #2d2d2d;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  /* Keep transparent glass base, maybe slightly darker but NO SOLID */
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 .stock-header {
-  display: grid;
-  grid-template-columns: 50px 100px 100px 1fr auto;
+  display: flex;
   align-items: center;
-  padding: 15px 20px;
+  padding: 1.5rem;
   cursor: pointer;
-  gap: 15px;
   transition: background-color 0.2s;
+  color: white;
+  /* Ensure text inherits */
 }
 
+/* Ensure hover doesn't break glass */
 .stock-header:hover {
-  background-color: #f5f5f5;
+  background-color: rgba(255, 255, 255, 0.08);
+  /* Slightly lighter on hover */
+}
+
+.stock-rank {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  width: 50px;
+}
+
+.stock-info {
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-ticker {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.stock-company-name {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
+
+.dark-mode .stock-ticker {
+  color: #fff;
+}
+
+.dark-mode .stock-company-name {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.stock-score {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #60a5fa;
+  /* Blue-ish */
+  width: 150px;
 }
 
 body.dark-mode .stock-header:hover {
   background-color: #3d3d3d;
 }
 
-.stock-rank {
-  font-size: 18px;
-  font-weight: bold;
-  color: #007bff;
-}
-
 body.dark-mode .stock-rank {
   color: #4da6ff;
 }
 
-.stock-name {
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
-}
 
-body.dark-mode .stock-name {
-  color: #e0e0e0;
-}
+
+
+
+
 
 .stock-score {
-  font-size: 16px;
-  color: #666;
-  font-weight: 500;
+  font-size: 0.9rem;
+  /* Match nav-link */
+  font-weight: 600;
+  /* Match nav-link */
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+  width: 150px;
+  letter-spacing: 0.5px;
+  /* Slight tracking like nav */
 }
 
 body.dark-mode .stock-score {
-  color: #999;
+  color: #fff;
 }
 
 .stock-previews {
@@ -134,34 +151,36 @@ body.dark-mode .stock-score {
   width: 200px;
   height: 100px;
   overflow: hidden;
-  background: white;
+  background: transparent;
   border-radius: 4px;
   padding: 5px;
 }
 
 body.dark-mode .chart-thumbnail {
-  background: #2d2d2d;
+  background: transparent;
 }
 
 .expand-indicator {
   font-size: 18px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.6);
   transition: transform 0.2s;
+  margin-left: auto;
+  /* Align to right */
 }
 
 body.dark-mode .expand-indicator {
-  color: #999;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .stock-expanded {
   padding: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   display: grid;
   gap: 30px;
 }
 
 body.dark-mode .stock-expanded {
-  border-top-color: #444;
+  border-top-color: rgba(255, 255, 255, 0.05);
 }
 
 .expanded-gauge,
@@ -170,30 +189,35 @@ body.dark-mode .stock-expanded {
 }
 
 .expanded-chart {
-  background: white;
+  background: transparent;
+  /* Seamless blend */
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* box-shadow removed for flat glass feel */
 }
 
 body.dark-mode .expanded-chart {
-  background: #2d2d2d;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: transparent;
+  box-shadow: none;
 }
 
 @media (max-width: 768px) {
   .stock-header {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
+    /* Fix grid replacement issue */
     gap: 10px;
   }
-  
+
+  .stock-info {
+    width: 100%;
+  }
+
   .stock-previews {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .chart-thumbnail {
     width: 100%;
   }
 }
-

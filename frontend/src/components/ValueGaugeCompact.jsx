@@ -12,26 +12,26 @@ function ValueGaugeCompact({ ticker, score }) {
   const wrapperRef = useRef(null)
   useEffect(() => {
     if (!gaugeRef.current) return
-  
+
     const updateTheme = () => {
       const color = getPointerColor()
-  
+
       gaugeRef.current.setOptions({
         pointer: { color }
       })
-  
+
       gaugeRef.current.render()
     }
-  
+
     updateTheme()
-  
+
     // Watch for class changes on <body>
     const observer = new MutationObserver(updateTheme)
     observer.observe(document.body, {
       attributes: true,
       attributeFilter: ['class']
     })
-  
+
     return () => observer.disconnect()
   }, [])
   useEffect(() => {
@@ -39,6 +39,10 @@ function ValueGaugeCompact({ ticker, score }) {
 
     // Initialize gauge
     if (!gaugeRef.current) {
+      // Clear canvas before init to prevent artifacts
+      const ctx = canvasRef.current.getContext('2d')
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+
       // Create text field element for displaying the score
       const textFieldEl = document.createElement('div')
       textFieldEl.className = 'gauge-text-field-compact'
@@ -61,16 +65,18 @@ function ValueGaugeCompact({ ticker, score }) {
           iconScale: 1,
           color: getPointerColor()
         },
-        
+
         limitMax: true,
         limitMin: true,
         strokeColor: '#e0e0e0',
         highDpiSupport: true,
-        staticZones: [
-          { strokeStyle: '#dc3545', min: 0, max: 50 },
-          { strokeStyle: '#ffc107', min: 50, max: 75 },
-          { strokeStyle: '#28a745', min: 75, max: 100 }
+        percentColors: [
+          [0.0, "#dc3545"],
+          [0.50, "#ffc107"],
+          [1.0, "#28a745"]
         ],
+        staticZones: null,
+        generateGradient: true,
         fontSize: 12
       })
       gaugeRef.current.maxValue = 100
@@ -96,7 +102,7 @@ function ValueGaugeCompact({ ticker, score }) {
       <div className="gauge-wrapper-compact" ref={wrapperRef}>
         <canvas ref={canvasRef} width="100" height="60" className="gauge-canvas-compact"></canvas>
       </div>
-      <div className="gauge-ticker-compact">{ticker}</div>
+      <div className="gauge-ticker-compact">PE: {ticker}</div>
     </div>
   )
 }

@@ -2,12 +2,38 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from valuation import value_PE_avg, value_PE_min_max
 from finance_plots import load_manual_eps, _get_price_history, _get_manual_eps_series
+from scraper import fetch_eps_data, append_to_file
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
+
 app = Flask(__name__)
+# Force reload
 CORS(app)  # Enable CORS for React frontend
+
+@app.route('/api/fetch_eps/<ticker>', methods=['POST'])
+def fetch_eps_route(ticker):
+    """
+    Endpoint to trigger manual fetch of EPS data.
+    """
+    try:
+        data, warning = fetch_eps_data(ticker)
+        if data is None:
+            return jsonify({'success': False, 'error': warning}), 400
+        
+        # Append to file
+        success, msg = append_to_file(ticker, data)
+        if not success:
+            return jsonify({'success': False, 'error': msg}), 500
+        
+        response = {'success': True, 'message': f'Successfully fetched data for {ticker}'}
+        if warning:
+            response['warning'] = warning
+            
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/value_pe_avg/<ticker>', methods=['GET'])
@@ -160,14 +186,18 @@ def batch_value_pe_avg():
                     'min_pe': float(details['min_pe']),
                     'max_pe': float(details['max_pe']),
                     'score_avg': float(details['score_avg']),
-                    'score_range': float(details['score_range'])
+                    'score_range': float(details['score_range']),
+                    'data_points': int(details['data_points'])
                 }
             })
         except Exception as e:
+            err_msg = str(e)
+            code = 'MISSING_DATA' if "not found in" in err_msg else 'UNKNOWN'
             results.append({
                 'ticker': ticker,
                 'success': False,
-                'error': str(e)
+                'error': err_msg,
+                'error_code': code
             })
     
     return jsonify({
@@ -259,13 +289,17 @@ def batch_pe_ratios():
                 'success': True,
                 'pe_ttm': pe_ttm_data,
                 'pe_forward': pe_forward_data if pe_forward_data else None,
-                'price': price_data
+                'price': price_data,
+                'data_points': len(pe_ttm_data)
             })
         except Exception as e:
+            err_msg = str(e)
+            code = 'MISSING_DATA' if "not found in" in err_msg else 'UNKNOWN'
             results.append({
                 'ticker': ticker,
                 'success': False,
-                'error': str(e)
+                'error': err_msg,
+                'error_code': code
             })
     
     return jsonify({
