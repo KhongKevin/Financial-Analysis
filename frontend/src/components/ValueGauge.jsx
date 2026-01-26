@@ -6,11 +6,13 @@ const getPointerColor = () =>
   document.body.classList.contains('dark-mode') ? '#ffffff' : '#000000'
 
 
-function ValueGauge({ ticker, score, details }) {
+function ValueGauge({ ticker, score, details, type = 'pe' }) {
   const canvasRef = useRef(null)
   const gaugeRef = useRef(null)
   const textFieldRef = useRef(null)
   const wrapperRef = useRef(null)
+
+
   useEffect(() => {
     if (!gaugeRef.current) return
 
@@ -109,22 +111,45 @@ function ValueGauge({ ticker, score, details }) {
 
       {details && (
         <div className="gauge-details">
-          <div className="detail-item">
-            <span className="detail-label">Current P/E:</span>
-            <span className="detail-value">{details.current_pe.toFixed(2)}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Avg P/E:</span>
-            <span className="detail-value">{details.avg_pe.toFixed(2)}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Min P/E:</span>
-            <span className="detail-value">{details.min_pe.toFixed(2)}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Max P/E:</span>
-            <span className="detail-value">{details.max_pe.toFixed(2)}</span>
-          </div>
+          {type === 'pe' ? (
+            <>
+              <div className="detail-item">
+                <span className="detail-label">Current P/E:</span>
+                <span className="detail-value">{details.current_pe.toFixed(2)}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Avg P/E:</span>
+                <span className="detail-value">{details.avg_pe.toFixed(2)}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Min P/E:</span>
+                <span className="detail-value">{details.min_pe.toFixed(2)}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Max P/E:</span>
+                <span className="detail-value">{details.max_pe.toFixed(2)}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="detail-item">
+                <span className="detail-label">D/E Ratio:</span>
+                <span className="detail-value">{details.current_ratio.toFixed(2)}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Total Debt:</span>
+                <span className="detail-value">${(details.total_debt / 1000).toFixed(1)}B</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Equity:</span>
+                <span className="detail-value">${(details.total_equity / 1000).toFixed(1)}B</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Date:</span>
+                <span className="detail-value" style={{ fontSize: '0.75rem' }}>{details.date}</span>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

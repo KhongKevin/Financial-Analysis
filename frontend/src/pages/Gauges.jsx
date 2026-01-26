@@ -6,34 +6,54 @@ function Gauges() {
   const [tickers, setTickers] = useState('NFLX,AMD,GOOG,NVDA,INTC,AMZN')
   const [years, setYears] = useState('2')
   const [gaugeData, setGaugeData] = useState([])
+  const [debtData, setDebtData] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('pe-reversion')
 
   const handleLoadGauges = async () => {
     setLoading(true)
     setError('')
     try {
       const tickerList = tickers.split(',').map(t => t.trim()).filter(t => t)
-      const response = await fetch('/api/batch/value_pe_avg', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          tickers: tickerList,
-          years: parseInt(years),
-          filename: 'EPS_manual.txt'
-        })
-      })
 
-      const data = await response.json()
-      if (data.success) {
-        // Sort by score (highest first)
-        const sorted = data.results
-          .filter(r => r.success)
-          .sort((a, b) => (b.score_100 || 0) - (a.score_100 || 0))
-        setGaugeData(sorted)
-      } else {
+      // If on DE tab, bake in the fetch
+      if (activeTab === 'debt-equity') {
+        setFetchingBalance(true)
+        for (const ticker of tickerList) {
+          try {
+            await fetch(`/api/fetch_balance/${ticker}`, { method: 'POST' })
+          } catch (e) {
+            console.error(`Failed to fetch balance for ${ticker}`, e)
+          }
+        }
+        setFetchingBalance(false)
+      }
+
+      const [peRes, debtRes] = await Promise.all([
+        fetch('/api/batch/value_pe_avg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tickers: tickerList, years: parseInt(years), filename: 'EPS_manual.txt' })
+        }),
+        fetch('/api/batch/debt_to_equity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tickers: tickerList, filename: 'Balance_manual.txt' })
+        })
+      ])
+
+      const peJson = await peRes.json()
+      const debtJson = await debtRes.json()
+
+      if (peJson.success) {
+        setGaugeData(peJson.results.filter(r => r.success).sort((a, b) => (b.score_100 || 0) - (a.score_100 || 0)))
+      }
+      if (debtJson.success) {
+        setDebtData(debtJson.results.filter(r => r.success).sort((a, b) => (b.score_100 || 0) - (a.score_100 || 0)))
+      }
+
+      if (!peJson.success && !debtJson.success) {
         setError('Failed to load gauge data')
       }
     } catch (err) {
@@ -43,13 +63,40 @@ function Gauges() {
     }
   }
 
+  const [fetchingBalance, setFetchingBalance] = useState(false)
+
+  const handleFetchBalance = async () => {
+    setFetchingBalance(true)
+    const tickerList = tickers.split(',').map(t => t.trim()).filter(t => t)
+    let successCount = 0
+    let failCount = 0
+
+    for (const ticker of tickerList) {
+      try {
+        const res = await fetch(`/api/fetch_balance/${ticker}`, { method: 'POST' })
+        const data = await res.json()
+        if (data.success) {
+          successCount++
+        } else {
+          failCount++
+        }
+      } catch (err) {
+        failCount++
+      }
+    }
+
+    alert(`Balance Sheet Fetch Results:\nSuccess: ${successCount}\nFailed: ${failCount}`)
+    handleLoadGauges() // Reload after fetching
+    setFetchingBalance(false)
+  }
+
   useEffect(() => {
     handleLoadGauges()
   }, [])
 
   return (
     <div className="gauges-page">
-      <div className="controls">
+      <form className="controls" onSubmit={(e) => { e.preventDefault(); handleLoadGauges(); }}>
         <input
           type="text"
           placeholder="Tickers (comma-separated)"
@@ -57,7 +104,7 @@ function Gauges() {
           onChange={(e) => setTickers(e.target.value)}
         />
         <label>
-          Years (Gauges):
+          Years (History):
           <input
             type="number"
             value={years}
@@ -67,8 +114,23 @@ function Gauges() {
             style={{ width: '60px', marginLeft: '5px' }}
           />
         </label>
-        <button className="load-button" onClick={handleLoadGauges} disabled={loading}>
-          {loading ? 'Loading...' : 'Load Gauges'}
+        <button type="submit" className="load-button" disabled={loading || fetchingBalance}>
+          {loading || fetchingBalance ? 'Processing...' : 'Load Gauges'}
+        </button>
+      </form>
+
+      <div className="sub-tabs">
+        <button
+          className={`sub-tab ${activeTab === 'pe-reversion' ? 'active' : ''}`}
+          onClick={() => setActiveTab('pe-reversion')}
+        >
+          P/E Average Reversion Score
+        </button>
+        <button
+          className={`sub-tab ${activeTab === 'debt-equity' ? 'active' : ''}`}
+          onClick={() => setActiveTab('debt-equity')}
+        >
+          Debt-to-Equity Valuation
         </button>
       </div>
 
@@ -76,9 +138,9 @@ function Gauges() {
 
       {loading && <div className="loading">Loading...</div>}
 
-      {gaugeData.length > 0 && (
+      {activeTab === 'pe-reversion' && gaugeData.length > 0 && (
         <section className="section">
-          <h2 className="section-title">Valuation Scores (P/E Avg)</h2>
+          <h2 className="section-title">P/E Average Reversion Score</h2>
           <div className="gauge-container">
             {gaugeData.map((item) => (
               <div key={item.ticker} className="glass-card">
@@ -110,6 +172,31 @@ function Gauges() {
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {activeTab === 'debt-equity' && (
+        <section className="section">
+          <h2 className="section-title" style={{ margin: 0, marginBottom: '20px' }}>Debt-to-Equity Valuation</h2>
+          {debtData.length > 0 ? (
+            <div className="gauge-container">
+              {debtData.map((item) => (
+                <div key={item.ticker} className="glass-card">
+                  <ValueGauge
+                    ticker={item.ticker}
+                    score={item.score_100}
+                    details={item.details}
+                    type="debt"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : !loading && (
+            <div className="loading" style={{ marginTop: '50px' }}>
+              No Debt-to-Equity data found for these tickers.
+              Click "Fetch Balance Sheets" to retrieve data from StockAnalysis.
+            </div>
+          )}
         </section>
       )}
     </div>

@@ -5,11 +5,14 @@ import './Navigation.css'
 function Navigation({ darkMode, toggleDarkMode }) {
   const location = useLocation()
 
+  const isMoreActive = location.pathname === '/about' || location.pathname === '/how-to-use'
+  const isGaugesActive = location.pathname.startsWith('/gauges')
+
   return (
     <nav className={`navigation ${darkMode ? 'dark' : ''}`}>
       <div className="nav-title">
         {location.pathname === '/' ? 'Home' :
-          location.pathname === '/gauges' ? 'Gauges' :
+          isGaugesActive ? 'Gauges' :
             location.pathname === '/charts' ? 'Charts' : 'Finance'}
       </div>
 
@@ -22,7 +25,7 @@ function Navigation({ darkMode, toggleDarkMode }) {
             </svg>
             HOME
           </Link>
-          <Link to="/gauges" className={`nav-link ${location.pathname === '/gauges' ? 'active' : ''}`}>
+          <Link to="/gauges" className={`nav-link ${isGaugesActive ? 'active' : ''}`}>
             <svg className="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
@@ -31,15 +34,14 @@ function Navigation({ darkMode, toggleDarkMode }) {
           </Link>
           <Link to="/charts" className={`nav-link ${location.pathname === '/charts' ? 'active' : ''}`}>
             <svg className="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 8 12 12 14 14"></polyline>
             </svg>
             CHARTS
           </Link>
 
           <div className="nav-dropdown-container">
-            <button className="nav-link dropdown-trigger">
+            <button className={`nav-link dropdown-trigger ${isMoreActive ? 'active' : ''}`}>
               <svg className="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="1"></circle>
                 <circle cx="19" cy="12" r="1"></circle>

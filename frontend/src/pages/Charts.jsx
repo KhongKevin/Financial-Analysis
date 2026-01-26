@@ -48,7 +48,7 @@ function Charts() {
 
   return (
     <div className="charts-page">
-      <div className="controls">
+      <form className="controls" onSubmit={(e) => { e.preventDefault(); handleLoadCharts(); }}>
         <input
           type="text"
           placeholder="Tickers (comma-separated)"
@@ -66,10 +66,10 @@ function Charts() {
             style={{ width: '60px', marginLeft: '5px' }}
           />
         </label>
-        <button className="load-button" onClick={handleLoadCharts} disabled={loading}>
+        <button type="submit" className="load-button" disabled={loading}>
           {loading ? 'Loading...' : 'Load Charts'}
         </button>
-      </div>
+      </form>
 
       {error && <div className="error">{error}</div>}
 

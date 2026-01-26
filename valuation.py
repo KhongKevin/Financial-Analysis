@@ -238,7 +238,7 @@ def value_PE_avg(ticker, years=1, filename="EPS_manual.txt"):
     # Stats
     current_pe = df_window["PE"].iloc[-1]
     min_pe, max_pe, avg_pe = df_window["PE"].min(), df_window["PE"].max(), df_window["PE"].mean()
-
+ 
     # --- Scoring ---
     # Range-based
     if max_pe == min_pe:
@@ -267,4 +267,90 @@ def value_PE_avg(ticker, years=1, filename="EPS_manual.txt"):
         "data_points": len(df_window)
     }
 
+    return score, details
+
+
+def load_manual_balance_sheet(filename="Balance_manual.txt"):
+    """
+    Parse Balance_manual.txt into a dict of {ticker: {date: {total_debt, total_equity}}}
+    Format:
+    TICKER
+    2023-12-31	Debt:1000	Equity:500
+    END
+    """
+    data = {}
+    if not os.path.exists(filename):
+        return data
+        
+    current_ticker = None
+    with open(filename, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line: continue
+            if line == "END":
+                current_ticker = None
+                continue
+            if line.isalpha():
+                current_ticker = line
+                data[current_ticker] = {}
+            else:
+                parts = line.split('\t')
+                if current_ticker and len(parts) >= 2:
+                    date = parts[0]
+                    debt = 0
+                    equity = 0
+                    for p in parts[1:]:
+                        if p.startswith("Debt:"):
+                            debt = float(p.replace("Debt:", "").replace(",", ""))
+                        if p.startswith("Equity:"):
+                            equity = float(p.replace("Equity:", "").replace(",", ""))
+                    data[current_ticker][date] = {"debt": debt, "equity": equity}
+    return data
+
+
+def score_debt_to_equity(ticker, filename="Balance_manual.txt"):
+    """
+    Calculate Debt-to-Equity score.
+    Lower is better.
+    """
+    balance_data = load_manual_balance_sheet(filename)
+    if ticker not in balance_data:
+        raise ValueError(f"{ticker} not found in {filename}")
+        
+    dates = sorted(balance_data[ticker].keys(), reverse=True)
+    if not dates:
+        raise ValueError(f"No balance sheet data for {ticker}")
+        
+    current_date = dates[0]
+    debt = balance_data[ticker][current_date]["debt"]
+    equity = balance_data[ticker][current_date]["equity"]
+    
+    if equity <= 0:
+        ratio = float('inf')
+    else:
+        ratio = debt / equity
+        
+    # Scoring logic:
+    # 0.0 -> 1.0 (Best)
+    # 0.5 -> 0.8
+    # 1.0 -> 0.6
+    # 2.0 -> 0.3
+    # 4.0+ -> 0.0
+    if ratio <= 0.5:
+        score = 0.8 + (0.2 * (0.5 - ratio) / 0.5)
+    elif ratio <= 1.5:
+        score = 0.5 + (0.3 * (1.5 - ratio) / 1.0)
+    elif ratio <= 3.0:
+        score = 0.2 + (0.3 * (3.0 - ratio) / 1.5)
+    else:
+        score = max(0, 0.2 * (5.0 - ratio) / 2.0)
+        
+    details = {
+        "current_ratio": ratio,
+        "total_debt": debt,
+        "total_equity": equity,
+        "date": current_date,
+        "score": score
+    }
+    
     return score, details

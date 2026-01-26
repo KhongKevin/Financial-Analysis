@@ -105,23 +105,81 @@ def fetch_eps_data(ticker):
     except Exception as e:
         return None, f"Scraper Error: {str(e)}"
 
+def fetch_balance_sheet(ticker):
+    """
+    Scrapes balance sheet data (Debt/Equity).
+    """
+    url = f"https://stockanalysis.com/stocks/{ticker.lower()}/financials/balance-sheet/quarterly/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        if response.status_code != 200:
+            return None, f"Failed to fetch balance sheet: HTTP {response.status_code}"
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        dfs = pd.read_html(str(soup))
+        if not dfs:
+            return None, "No tables found on balance sheet page"
+
+        # Look for Debt and Equity
+        debt_row = None
+        equity_row = None
+        target_df = None
+
+        for df in dfs:
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = [' '.join(col).strip() for col in df.columns.values]
+            df = df.reset_index(drop=True)
+            
+            for i, row in df.iterrows():
+                label = str(row.iloc[0]).lower().strip()
+                if "total debt" in label:
+                    debt_row = row
+                if "shareholders' equity" in label or label == "total equity":
+                    equity_row = row
+                
+                if debt_row is not None and equity_row is not None:
+                    target_df = df
+                    break
+            if target_df is not None:
+                break
+
+        if debt_row is None or equity_row is None:
+            return None, f"Could not find both Debt and Equity rows ({'Debt found' if debt_row else 'Debt missing'}, {'Equity found' if equity_row else 'Equity missing'})"
+
+        cols = target_df.columns.tolist()
+        results = []
+        for i in range(1, len(cols)):
+            col_header = str(cols[i])
+            debt_val = str(debt_row.iloc[i]).strip().replace('$', '').replace(',', '')
+            equity_val = str(equity_row.iloc[i]).strip().replace('$', '').replace(',', '')
+
+            match = re.search(r'([A-Za-z]{3}\s+\d{1,2},\s+\d{4})', col_header)
+            if match:
+                date_str = datetime.strptime(match.group(1), "%b %d, %Y").strftime("%Y-%m-%d")
+            else:
+                # Try simple YYYY-MM-DD or other variations
+                try:
+                    date_str = pd.to_datetime(col_header).strftime("%Y-%m-%d")
+                except:
+                    continue
+            
+            if debt_val != '-' and equity_val != '-':
+                results.append(f"{date_str}\tDebt:{debt_val}\tEquity:{equity_val}")
+
+        return results, None
+    except Exception as e:
+        return None, f"Balance Scraper Error: {str(e)}"
+
 def append_to_file(ticker, data_lines, filename="EPS_manual.txt"):
     """
-    Appends the fetched data to the manual file.
-    FORMAT:
-    TICKER
-    DATE    $EPS
-    ...
-    END
+    Appends data (EPS or Balance) to specified file.
     """
     try:
-        # Check if ticker already exists to avoid dupes?
-        # Ideally yes, but we might be updating. 
-        # For simplicity, we just append to end. 
-        # The parser usually takes the *last* block or we need to be careful.
-        # finance_plots.py load_manual_eps reads locally. If dupes exist, it might define it twice.
-        # It overwrites `eps_data[current_ticker] = df`. So last one wins.
-        
         with open(filename, "a") as f:
             f.write(f"\n{ticker.upper()}\n")
             for line in data_lines:

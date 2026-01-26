@@ -1,8 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from valuation import value_PE_avg, value_PE_min_max
+from valuation import value_PE_min_max, value_PE_avg, score_debt_to_equity
 from finance_plots import load_manual_eps, _get_price_history, _get_manual_eps_series
-from scraper import fetch_eps_data, append_to_file
+from scraper import fetch_eps_data, append_to_file, fetch_balance_sheet
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -23,17 +23,77 @@ def fetch_eps_route(ticker):
             return jsonify({'success': False, 'error': warning}), 400
         
         # Append to file
-        success, msg = append_to_file(ticker, data)
+        success, msg = append_to_file(ticker, data, filename="EPS_manual.txt")
         if not success:
             return jsonify({'success': False, 'error': msg}), 500
         
-        response = {'success': True, 'message': f'Successfully fetched data for {ticker}'}
+        response = {'success': True, 'message': f'Successfully fetched EPS for {ticker}'}
         if warning:
             response['warning'] = warning
             
         return jsonify(response)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/fetch_balance/<ticker>', methods=['POST'])
+def fetch_balance_route(ticker):
+    """
+    Endpoint to trigger manual fetch of Balance Sheet data.
+    """
+    try:
+        data, error = fetch_balance_sheet(ticker)
+        if data is None:
+            return jsonify({'success': False, 'error': error}), 400
+        
+        # Append to Balance_manual.txt
+        success, msg = append_to_file(ticker, data, filename="Balance_manual.txt")
+        if not success:
+            return jsonify({'success': False, 'error': msg}), 500
+            
+        return jsonify({'success': True, 'message': f'Successfully fetched Balance Sheet for {ticker}'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/batch/debt_to_equity', methods=['POST'])
+def batch_debt_to_equity():
+    """
+    Get debt_to_equity score for multiple tickers.
+    """
+    data = request.get_json()
+    tickers = data.get('tickers', [])
+    filename = data.get('filename', 'Balance_manual.txt')
+    
+    results = []
+    for ticker in tickers:
+        try:
+            score, details = score_debt_to_equity(ticker, filename=filename)
+            results.append({
+                'ticker': ticker,
+                'success': True,
+                'score': score,
+                'score_100': score * 100,
+                'details': {
+                    'current_ratio': float(details['current_ratio']),
+                    'total_debt': float(details['total_debt']),
+                    'total_equity': float(details['total_equity']),
+                    'date': details['date'],
+                    'score': float(details['score'])
+                }
+            })
+        except Exception as e:
+            err_msg = str(e)
+            code = 'MISSING_DATA' if "not found in" in err_msg else 'UNKNOWN'
+            results.append({
+                'ticker': ticker,
+                'success': False,
+                'error': err_msg,
+                'error_code': code
+            })
+    
+    return jsonify({
+        'success': True,
+        'results': results
+    })
 
 
 @app.route('/api/value_pe_avg/<ticker>', methods=['GET'])
