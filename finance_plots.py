@@ -6,7 +6,7 @@ import io
 from datetime import datetime, timedelta
 
 
-def load_manual_eps(filename: str = "EPS_manual.txt") -> dict:
+def load_manual_eps(filename: str = "DATA/EPS_manual.txt") -> dict:
     """
     Parse EPS_manual.txt into a dict of {ticker: DataFrame(index=Date, columns=[EPS])}.
     """
@@ -40,12 +40,13 @@ def load_manual_eps(filename: str = "EPS_manual.txt") -> dict:
     return eps_data
 
 
-def _get_price_data_stooq(ticker: str, years: int = None, start_date: str = None, end_date: str = None) -> pd.DataFrame:
+def _get_price_data_yahoo(ticker: str, years: int = None, start_date: str = None, end_date: str = None) -> pd.DataFrame:
     """
-    Get price data from Stooq with caching.
+    Get price data from Yahoo Finance API with caching.
     Can filter by years or by start_date/end_date.
     """
     from cache_utils import is_cache_valid, load_from_cache, save_to_cache, cache_covers_range
+    import urllib.request, json
     
     # Check if we have valid cached data
     cached_df = pd.DataFrame()
@@ -56,32 +57,38 @@ def _get_price_data_stooq(ticker: str, years: int = None, start_date: str = None
         if not cached_df.empty and cache_covers_range(ticker, years=years, start_date=start_date, end_date=end_date):
             needs_refresh = False
     
-    # Fetch from Stooq if cache is invalid or empty
+    # Fetch from Yahoo if cache is invalid or empty
     if needs_refresh:
         try:
-            stooq_ticker = ticker if '.' in ticker else f"{ticker}.US"
-            url = f"https://stooq.com/q/d/l/?s={stooq_ticker}&i=d"
+            # Query maximum amount to populate cache comprehensively
+            url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?range=10y&interval=1d"
+            hdr = {'User-Agent': 'Mozilla/5.0'}
+            req = urllib.request.Request(url, headers=hdr)
             
-            with urllib.request.urlopen(url, timeout=10) as response:
-                data = response.read().decode('utf-8')
-            
-            df = pd.read_csv(io.StringIO(data))
-            if df.empty or 'Close' not in df.columns:
-                # If Stooq fails but we have cached data, use that
-                if not cached_df.empty:
-                    print(f"Using cached data for {ticker}")
-                else:
-                    return pd.DataFrame()
-            else:
-                df['Date'] = pd.to_datetime(df['Date'])
-                df = df.set_index('Date').sort_index()
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode('utf-8'))
                 
-                # Save full dataset to cache
-                save_to_cache(ticker, df)
-                cached_df = df
+            chart_res = data.get('chart', {}).get('result', [])
+            if not chart_res:
+                raise ValueError("No result found in Yahoo Finance response.")
+                
+            timestamps = chart_res[0].get('timestamp', [])
+            close_prices = chart_res[0]['indicators']['quote'][0].get('close', [])
+            
+            if not timestamps or not close_prices:
+                raise ValueError("Missing timestamps or close prices.")
+                
+            df = pd.DataFrame({'Close': close_prices}, index=pd.to_datetime(timestamps, unit='s')).dropna()
+            df.index.name = 'Date'
+            # Remove timezone information from the index so it behaves like Stooq
+            df.index = df.index.tz_localize(None).normalize()
+            
+            # Save full dataset to cache
+            save_to_cache(ticker, df)
+            cached_df = df
         except Exception as e:
-            print(f"Stooq failed for {ticker}: {e}")
-            # If Stooq fails but we have cached data, use that
+            print(f"Yahoo failed for {ticker}: {e}")
+            # If Yahoo fails but we have cached data, use that
             if not cached_df.empty:
                 print(f"Using cached data for {ticker}")
             else:
@@ -106,9 +113,9 @@ def _get_price_data_stooq(ticker: str, years: int = None, start_date: str = None
 
 def _get_price_history(ticker: str, years: int) -> pd.DataFrame:
     """
-    Get price history from Stooq.
+    Get price history from Yahoo Finance.
     """
-    return _get_price_data_stooq(ticker, years=years)
+    return _get_price_data_yahoo(ticker, years=years)
 
 
 def _get_auto_ttm_eps_series(ticker: str, price_index: pd.DatetimeIndex) -> pd.Series:
@@ -126,7 +133,14 @@ def _get_manual_eps_series(ticker: str, price_index: pd.DatetimeIndex, manual_ep
         return pd.Series(index=price_index, dtype=float)
     eps_df = manual_eps_by_ticker[ticker].copy()
     if compute_ttm:
-        eps_df["TTM_EPS"] = eps_df["EPS"].rolling(4, min_periods=1).sum()
+        if len(eps_df) >= 2:
+            median_gap = pd.Series(eps_df.index).diff().median().days
+            if median_gap > 120: # 120 days is roughly > 1 quarter gap
+                eps_df["TTM_EPS"] = eps_df["EPS"]
+            else:
+                eps_df["TTM_EPS"] = eps_df["EPS"].rolling(4, min_periods=1).sum()
+        else:
+            eps_df["TTM_EPS"] = eps_df["EPS"]
         series = eps_df["TTM_EPS"].reindex(price_index, method="ffill")
     else:
         series = eps_df["EPS"].reindex(price_index, method="ffill")
@@ -138,7 +152,7 @@ def plot_price_vs_eps(
     years: int = 5,
     smoothing: int = 0,
     source: str = "auto",
-    manual_filename: str = "EPS_manual.txt",
+    manual_filename: str = "DATA/EPS_manual.txt",
     paginate: bool = True,
     page_size: int = 4,
 ):
@@ -280,7 +294,7 @@ def plot_pe_ratios(
     years: int = 5,
     smoothing: int = 0,
     source: str = "auto",
-    manual_filename: str = "EPS_manual.txt",
+    manual_filename: str = "DATA/EPS_manual.txt",
     include_forward: bool = False,
     max_pe: float | None = None,
     paginate: bool = True,

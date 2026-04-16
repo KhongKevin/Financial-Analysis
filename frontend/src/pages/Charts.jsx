@@ -1,60 +1,103 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import PERatioChart from '../components/PERatioChart'
-import './Charts.css'
+import SetFilterModal from '../components/SetFilterModal'
+import LoadingBar from '../components/LoadingBar'
+import { DEFAULT_TICKERS } from '../constants'
 
 function Charts() {
-  const [tickers, setTickers] = useState('NFLX,AMD,GOOG,NVDA,INTC,AMZN')
   const [chartYears, setChartYears] = useState('5')
   const [chartData, setChartData] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLoadCharts = async () => {
+  // Set Filter State
+  const [isSetModalOpen, setIsSetModalOpen] = useState(false)
+  const [selectedSets, setSelectedSets] = useState([])
+  const [manualTickers, setManualTickers] = useState(DEFAULT_TICKERS)
+  const [activeTickers, setActiveTickers] = useState(() => DEFAULT_TICKERS.split(',').map(t => t.trim()).filter(t => t))
+  const [prevChartYears, setPrevChartYears] = useState('5')
+  
+  const currentLoadId = useRef(0)
+
+  const handleLoadCharts = async (tickerListToLoad) => {
+    const loadId = ++currentLoadId.current;
+    
+    if (!tickerListToLoad || tickerListToLoad.length === 0) {
+      setChartData([])
+      return
+    }
+
+    const yearsChanged = prevChartYears !== chartYears
+    let existingData = []
+    let fetchList = tickerListToLoad
+
+    if (!yearsChanged) {
+      existingData = chartData.filter(d => tickerListToLoad.includes(d.ticker))
+      const existingTickers = new Set(existingData.map(d => d.ticker))
+      fetchList = tickerListToLoad.filter(t => !existingTickers.has(t))
+    }
+
+    setChartData(existingData)
+
+    if (fetchList.length === 0) return
+
+    setPrevChartYears(chartYears)
+
     setLoading(true)
     setError('')
     try {
-      const tickerList = tickers.split(',').map(t => t.trim()).filter(t => t)
       const response = await fetch('/api/batch/pe_ratios', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          tickers: tickerList,
+          tickers: fetchList,
           years: parseInt(chartYears),
           source: 'manual',
           include_forward: true,
           smoothing: 0,
-          filename: 'EPS_manual.txt'
+          filename: 'DATA/EPS_manual.txt'
         })
       })
 
       const data = await response.json()
+      
+      if (loadId !== currentLoadId.current) return;
+
       if (data.success) {
-        setChartData(data.results.filter(r => r.success))
+        const newData = data.results.filter(r => r.success);
+        setChartData(prev => {
+          const filtered = prev.filter(d => !newData.find(n => n.ticker === d.ticker));
+          return [...filtered, ...newData];
+        })
       } else {
         setError('Failed to load chart data')
       }
     } catch (err) {
-      setError(`Error: ${err.message}`)
+      if (loadId === currentLoadId.current) setError(`Error: ${err.message}`)
     } finally {
-      setLoading(false)
+      if (loadId === currentLoadId.current) setLoading(false)
     }
   }
 
   useEffect(() => {
-    handleLoadCharts()
+    handleLoadCharts(activeTickers)
   }, [])
 
   return (
     <div className="charts-page">
-      <form className="controls" onSubmit={(e) => { e.preventDefault(); handleLoadCharts(); }}>
-        <input
-          type="text"
-          placeholder="Tickers (comma-separated)"
-          value={tickers}
-          onChange={(e) => setTickers(e.target.value)}
-        />
+      <form className="controls" onSubmit={(e) => { e.preventDefault(); handleLoadCharts(activeTickers); }}>
+        <label>
+          <button 
+            type="button" 
+            className="secondary-button" 
+            onClick={() => setIsSetModalOpen(true)}
+            title="Choose Sets & Add-ons"
+          >
+            Choose Stocks {selectedSets.length > 0 ? `(${selectedSets.length})` : ''}
+          </button>
+        </label>
         <label>
           Years (Charts):
           <input
@@ -108,10 +151,25 @@ function Charts() {
           ))}
         </section>
       )}
+      
+      <SetFilterModal 
+        isOpen={isSetModalOpen} 
+        onClose={() => setIsSetModalOpen(false)} 
+        selectedSets={selectedSets} 
+        manualTickersStr={manualTickers}
+        onApply={(sets, manualStr, combinedArray) => {
+          setSelectedSets(sets);
+          setManualTickers(manualStr);
+          setActiveTickers(combinedArray);
+          handleLoadCharts(combinedArray);
+        }} 
+      />
+      <LoadingBar isLoading={loading} />
     </div>
   )
 }
 
 export default Charts
+
 
 

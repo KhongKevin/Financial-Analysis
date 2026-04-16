@@ -45,12 +45,16 @@ function ValueGauge({ ticker, score, details, type = 'pe' }) {
       // Create text field element for displaying the score
       const textFieldEl = document.createElement('div')
       textFieldEl.className = 'gauge-text-field'
+      textFieldEl.style.opacity = '0' // Hide initially to prevent flicker
       // Append to wrapper if available, otherwise append to canvas parent
       const parent = wrapperRef.current || canvasRef.current.parentNode
       if (parent) {
         parent.appendChild(textFieldEl)
       }
       textFieldRef.current = textFieldEl
+
+      const ctx = canvasRef.current.getContext('2d')
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
 
       // Initialize gauge with semicircle configuration
       gaugeRef.current = new window.Gauge(canvasRef.current)
@@ -92,6 +96,12 @@ function ValueGauge({ ticker, score, details, type = 'pe' }) {
     // Update gauge value
     if (gaugeRef.current && typeof score === 'number') {
       gaugeRef.current.set(score)
+      if (textFieldRef.current) textFieldRef.current.style.opacity = '1'
+      canvasRef.current.style.opacity = '1'
+    } else if (gaugeRef.current) {
+      // Empty state
+      if (textFieldRef.current) textFieldRef.current.style.opacity = '0'
+      if (canvasRef.current) canvasRef.current.style.opacity = '0'
     }
 
     return () => {
@@ -128,6 +138,25 @@ function ValueGauge({ ticker, score, details, type = 'pe' }) {
               <div className="detail-item">
                 <span className="detail-label">Max P/E:</span>
                 <span className="detail-value">{details.max_pe.toFixed(2)}</span>
+              </div>
+            </>
+          ) : type === 'peg' ? (
+            <>
+              <div className="detail-item">
+                <span className="detail-label">PEG Ratio:</span>
+                <span className="detail-value">{details.peg.toFixed(2)}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">P/E Ratio:</span>
+                <span className="detail-value">{details.pe.toFixed(2)}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Growth Rate:</span>
+                <span className="detail-value">{details.growth_rate.toFixed(1)}%</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">R² (Fit):</span>
+                <span className="detail-value">{details.r_squared.toFixed(2)}</span>
               </div>
             </>
           ) : (

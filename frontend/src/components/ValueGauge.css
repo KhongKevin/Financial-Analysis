@@ -34,6 +34,7 @@ body.dark-mode .gauge-title {
 
 .gauge-canvas {
   display: block;
+  transition: opacity 0.3s ease;
 }
 
 .gauge-text-field {
@@ -45,7 +46,7 @@ body.dark-mode .gauge-title {
   font-weight: bold;
   color: #ffffff;
   pointer-events: none;
-  transition: color 0.2s;
+  transition: color 0.2s, opacity 0.3s ease;
 }
 
 body.dark-mode .gauge-text-field {
@@ -104,6 +105,7 @@ body.dark-mode .detail-value {
 
 .gauge-canvas-compact {
   display: block;
+  transition: opacity 0.3s ease;
 }
 
 .gauge-text-field-compact {
@@ -115,7 +117,7 @@ body.dark-mode .detail-value {
   font-weight: bold;
   color: #ffffff;
   pointer-events: none;
-  transition: color 0.2s;
+  transition: color 0.2s, opacity 0.3s ease;
 }
 
 body.dark-mode .gauge-text-field-compact {

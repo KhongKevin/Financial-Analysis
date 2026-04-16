@@ -5,7 +5,7 @@ import './Navigation.css'
 function Navigation({ darkMode, toggleDarkMode }) {
   const location = useLocation()
 
-  const isMoreActive = location.pathname === '/about' || location.pathname === '/how-to-use'
+  const isMoreActive = location.pathname === '/about' || location.pathname === '/how-to-use' || location.pathname === '/sets'
   const isGaugesActive = location.pathname.startsWith('/gauges')
 
   return (
@@ -50,6 +50,7 @@ function Navigation({ darkMode, toggleDarkMode }) {
               MORE
             </button>
             <div className="nav-dropdown-menu">
+              <Link to="/sets" className="dropdown-item">Sets</Link>
               <Link to="/about" className="dropdown-item">About</Link>
               <Link to="/how-to-use" className="dropdown-item">How to Use</Link>
             </div>

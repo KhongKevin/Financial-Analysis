@@ -6,6 +6,7 @@ import Gauges from './pages/Gauges'
 import Charts from './pages/Charts'
 import About from './pages/About'
 import HowToUse from './pages/HowToUse'
+import Sets from './pages/Sets'
 import './App.css'
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
           <Route path="/charts" element={<Charts />} />
           <Route path="/about" element={<About />} />
           <Route path="/how-to-use" element={<HowToUse />} />
+          <Route path="/sets" element={<Sets />} />
         </Routes>
       </div>
     </Router>

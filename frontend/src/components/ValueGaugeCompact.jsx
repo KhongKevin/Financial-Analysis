@@ -41,6 +41,7 @@ function ValueGaugeCompact({ ticker, score, type = 'pe' }) {
 
       const textFieldEl = document.createElement('div')
       textFieldEl.className = 'gauge-text-field-compact'
+      textFieldEl.style.opacity = '0'
       const parent = wrapperRef.current || canvasRef.current.parentNode
       if (parent) {
         parent.appendChild(textFieldEl)
@@ -78,6 +79,11 @@ function ValueGaugeCompact({ ticker, score, type = 'pe' }) {
 
     if (gaugeRef.current && typeof score === 'number') {
       gaugeRef.current.set(score)
+      if (textFieldRef.current) textFieldRef.current.style.opacity = '1'
+      canvasRef.current.style.opacity = '1'
+    } else if (gaugeRef.current) {
+      if (textFieldRef.current) textFieldRef.current.style.opacity = '0'
+      if (canvasRef.current) canvasRef.current.style.opacity = '0'
     }
 
     return () => {

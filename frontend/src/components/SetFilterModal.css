@@ -1,0 +1,142 @@
+.set-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.set-modal-content {
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+}
+
+.set-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.set-modal-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.4rem;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-size: 1.8rem;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: #ef4444;
+}
+
+.set-section {
+  margin-bottom: 1.5rem;
+}
+
+.set-section h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #60a5fa;
+  font-size: 1rem;
+}
+
+.manual-ticker-input, .set-search-input {
+  width: 95%; /* Make full width but allow for padding properly */
+  padding: 0.8rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: white;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.manual-ticker-input:focus, .set-search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.helper-text {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin: 0;
+}
+
+.set-tags-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.8rem;
+  padding: 1rem 0;
+  min-height: 150px;
+}
+
+.set-filter-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  cursor: pointer;
+  color: #fff;
+  user-select: none;
+}
+
+.set-filter-tag:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.set-filter-tag.selected {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.count-badge {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+.set-filter-tag.selected .count-badge {
+  background: rgba(59, 130, 246, 0.5);
+}
+
+.loading-text, .no-sets-text {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  width: 100%;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.set-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}

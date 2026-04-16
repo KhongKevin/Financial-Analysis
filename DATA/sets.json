@@ -1,0 +1,50 @@
+{
+    "user_husp81six": {
+        "Tech": [
+            "ADBE",
+            "NVDA",
+            "INTC",
+            "MU",
+            "MSFT",
+            "GOOG",
+            "SHOP",
+            "NFLX",
+            "PAYC",
+            "NVO",
+            "CRM",
+            "SOFI",
+            "CRWD"
+        ],
+        "ALL": [
+            "ADBE",
+            "AMAT",
+            "AMD",
+            "AMZN",
+            "ANET",
+            "ASML",
+            "COST",
+            "CRM",
+            "CRWD",
+            "CRWV",
+            "DKNG",
+            "GOOG",
+            "HIMS",
+            "IBM",
+            "INTC",
+            "MP",
+            "MSFT",
+            "MU",
+            "NBIS",
+            "NFLX",
+            "NVDA",
+            "NVO",
+            "OC",
+            "PAYC",
+            "PPG",
+            "SHOP",
+            "SOFI",
+            "TSLA",
+            "UNH"
+        ]
+    }
+}

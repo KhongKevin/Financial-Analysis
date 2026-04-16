@@ -59,6 +59,10 @@ def fetch_eps_data(ticker):
             col_header = str(cols[i])
             val = eps_row.iloc[i]
             
+            # Skip TTM columns to avoid mixing annual totals into quarterly lists
+            if "TTM" in col_header.upper():
+                continue
+            
             # Parse Date
             match = re.search(r'([A-Za-z]{3}\s+\d{1,2},\s+\d{4})', col_header)
             if not match:
@@ -175,7 +179,7 @@ def fetch_balance_sheet(ticker):
     except Exception as e:
         return None, f"Balance Scraper Error: {str(e)}"
 
-def append_to_file(ticker, data_lines, filename="EPS_manual.txt"):
+def append_to_file(ticker, data_lines, filename="DATA/EPS_manual.txt"):
     """
     Appends data (EPS or Balance) to specified file.
     """

@@ -1,11 +1,13 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from valuation import value_PE_min_max, value_PE_avg, score_debt_to_equity
+from valuation import value_PE_min_max, value_PE_avg, score_debt_to_equity, score_peg
 from finance_plots import load_manual_eps, _get_price_history, _get_manual_eps_series
 from scraper import fetch_eps_data, append_to_file, fetch_balance_sheet
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import os
+import json
 
 
 app = Flask(__name__)
@@ -23,7 +25,7 @@ def fetch_eps_route(ticker):
             return jsonify({'success': False, 'error': warning}), 400
         
         # Append to file
-        success, msg = append_to_file(ticker, data, filename="EPS_manual.txt")
+        success, msg = append_to_file(ticker, data, filename="DATA/EPS_manual.txt")
         if not success:
             return jsonify({'success': False, 'error': msg}), 500
         
@@ -46,7 +48,7 @@ def fetch_balance_route(ticker):
             return jsonify({'success': False, 'error': error}), 400
         
         # Append to Balance_manual.txt
-        success, msg = append_to_file(ticker, data, filename="Balance_manual.txt")
+        success, msg = append_to_file(ticker, data, filename="DATA/Balance_manual.txt")
         if not success:
             return jsonify({'success': False, 'error': msg}), 500
             
@@ -61,7 +63,8 @@ def batch_debt_to_equity():
     """
     data = request.get_json()
     tickers = data.get('tickers', [])
-    filename = data.get('filename', 'Balance_manual.txt')
+    years = int(data.get('years', 2))
+    filename = data.get('filename', 'DATA/Balance_manual.txt')
     
     results = []
     for ticker in tickers:
@@ -77,7 +80,8 @@ def batch_debt_to_equity():
                     'total_debt': float(details['total_debt']),
                     'total_equity': float(details['total_equity']),
                     'date': details['date'],
-                    'score': float(details['score'])
+                    'score': float(details['score']),
+                    'data_gaps': details.get('data_gaps', [])
                 }
             })
         except Exception as e:
@@ -103,7 +107,7 @@ def get_value_pe_avg(ticker):
     Query params: years (default 2), filename (default "EPS_manual.txt")
     """
     years = int(request.args.get('years', 2))
-    filename = request.args.get('filename', 'EPS_manual.txt')
+    filename = request.args.get('filename', 'DATA/EPS_manual.txt')
     
     try:
         score, details = value_PE_avg(ticker, years=years, filename=filename)
@@ -121,7 +125,8 @@ def get_value_pe_avg(ticker):
                 'min_pe': float(details['min_pe']),
                 'max_pe': float(details['max_pe']),
                 'score_avg': float(details['score_avg']),
-                'score_range': float(details['score_range'])
+                'score_range': float(details['score_range']),
+                'data_gaps': details.get('data_gaps', [])
             }
         })
     except Exception as e:
@@ -137,13 +142,13 @@ def get_pe_ratios(ticker):
     Get P/E ratio time series data for a ticker.
     Query params: years (default 5), source (default "manual"), 
                   include_forward (default false), smoothing (default 0),
-                  filename (default "EPS_manual.txt")
+                  filename (default "DATA/EPS_manual.txt")
     """
     years = int(request.args.get('years', 5))
     source = request.args.get('source', 'manual')
     include_forward = request.args.get('include_forward', 'false').lower() == 'true'
     smoothing = int(request.args.get('smoothing', 0))
-    filename = request.args.get('filename', 'EPS_manual.txt')
+    filename = request.args.get('filename', 'DATA/EPS_manual.txt')
     
     try:
         # Auto source not available with Stooq
@@ -228,7 +233,7 @@ def batch_value_pe_avg():
     data = request.get_json()
     tickers = data.get('tickers', [])
     years = data.get('years', 2)
-    filename = data.get('filename', 'EPS_manual.txt')
+    filename = data.get('filename', 'DATA/EPS_manual.txt')
     
     results = []
     for ticker in tickers:
@@ -247,7 +252,8 @@ def batch_value_pe_avg():
                     'max_pe': float(details['max_pe']),
                     'score_avg': float(details['score_avg']),
                     'score_range': float(details['score_range']),
-                    'data_points': int(details['data_points'])
+                    'data_points': int(details['data_points']),
+                    'data_gaps': details.get('data_gaps', [])
                 }
             })
         except Exception as e:
@@ -278,7 +284,7 @@ def batch_pe_ratios():
     source = data.get('source', 'manual')
     include_forward = data.get('include_forward', False)
     smoothing = data.get('smoothing', 0)
-    filename = data.get('filename', 'EPS_manual.txt')
+    filename = data.get('filename', 'DATA/EPS_manual.txt')
     
     results = []
     for ticker in tickers:
@@ -371,6 +377,164 @@ def batch_pe_ratios():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'ok'})
+
+
+@app.route('/api/batch/peg_ratio', methods=['POST'])
+def batch_peg_ratio():
+    """
+    Get PEG score for multiple tickers.
+    Body: {"tickers": ["AAPL", "NVDA"], "filename": "EPS_manual.txt"}
+    """
+    data = request.get_json()
+    tickers = data.get('tickers', [])
+    filename = data.get('filename', 'DATA/EPS_manual.txt')
+    years = int(data.get('years', 3)) # Default to 3 years for growth calc
+    
+    results = []
+    for ticker in tickers:
+        try:
+            score, details = score_peg(ticker, years=years, filename=filename)
+            results.append({
+                'ticker': ticker,
+                'success': True,
+                'score': score,
+                'score_100': score * 100,
+                'details': {
+                    'peg': float(details.get('peg', 999.0)),
+                    'pe': float(details.get('pe', 999.0)),
+                    'growth_rate': float(details.get('growth_rate', 0.0)),
+                    'r_squared': float(details.get('r_squared', 0.0)),
+                    'data_points': int(details.get('data_points', 0)),
+                    'score': float(details.get('score', 0.0)),
+                    'data_gaps': details.get('data_gaps', []),
+                    'error': details.get('error')
+                }
+            })
+        except Exception as e:
+            err_msg = str(e)
+            code = 'MISSING_DATA' if "not found in" in err_msg or "No price data" in err_msg or "No EPS data" in err_msg else 'UNKNOWN'
+            results.append({
+                'ticker': ticker,
+                'success': False,
+                'error': err_msg,
+                'error_code': code
+            })
+    
+    return jsonify({
+        'success': True,
+        'results': results
+    })
+
+
+@app.route('/api/batch/live_price', methods=['POST'])
+def batch_live_price():
+    """
+    Fetch current price and daily change for multiple tickers via Yahoo Finance.
+    """
+    import urllib.request, json
+    data = request.get_json()
+    tickers = data.get('tickers', [])
+    results = []
+
+    for ticker in tickers:
+        try:
+            url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?range=5d&interval=1d"
+            hdr = {'User-Agent': 'Mozilla/5.0'}
+            req = urllib.request.Request(url, headers=hdr)
+
+            with urllib.request.urlopen(req, timeout=10) as response:
+                resp_data = json.loads(response.read().decode('utf-8'))
+
+            chart_res = resp_data.get('chart', {}).get('result', [])
+            if not chart_res:
+                raise ValueError("No chart result")
+
+            meta = chart_res[0].get('meta', {})
+            current_price = meta.get('regularMarketPrice', 0)
+
+            # Get the previous trading day's close from the daily close array
+            closes = chart_res[0]['indicators']['quote'][0].get('close', [])
+            # Filter out None values
+            valid_closes = [c for c in closes if c is not None]
+            if len(valid_closes) >= 2:
+                previous_close = valid_closes[-2]
+            else:
+                previous_close = current_price  # fallback: no change
+
+            change = current_price - previous_close
+            change_pct = (change / previous_close * 100) if previous_close else 0
+
+            results.append({
+                'ticker': ticker,
+                'success': True,
+                'price': round(current_price, 2),
+                'previous_close': round(previous_close, 2),
+                'change': round(change, 2),
+                'change_pct': round(change_pct, 2)
+            })
+        except Exception as e:
+            results.append({
+                'ticker': ticker,
+                'success': False,
+                'error': str(e)
+            })
+
+    return jsonify({'success': True, 'results': results})
+
+
+SETS_FILE = 'DATA/sets.json'
+
+def load_sets():
+    if not os.path.exists(SETS_FILE):
+        return {}
+    try:
+        with open(SETS_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_sets(data):
+    os.makedirs('DATA', exist_ok=True)
+    with open(SETS_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
+@app.route('/api/sets', methods=['GET'])
+def get_sets():
+    user_id = request.args.get('userId', 'default_user')
+    sets = load_sets()
+    user_sets = sets.get(user_id, {})
+    return jsonify({'success': True, 'sets': user_sets})
+
+@app.route('/api/sets', methods=['POST'])
+def save_set():
+    data = request.get_json()
+    user_id = data.get('userId', 'default_user')
+    set_name = data.get('setName')
+    tickers = data.get('tickers', [])
+    
+    if not set_name:
+        return jsonify({'success': False, 'error': 'Set name is required'}), 400
+        
+    sets = load_sets()
+    if user_id not in sets:
+        sets[user_id] = {}
+        
+    sets[user_id][set_name] = tickers
+    save_sets(sets)
+    
+    return jsonify({'success': True, 'sets': sets[user_id]})
+
+@app.route('/api/sets/<set_name>', methods=['DELETE'])
+def delete_set(set_name):
+    user_id = request.args.get('userId', 'default_user')
+    
+    sets = load_sets()
+    if user_id in sets and set_name in sets[user_id]:
+        del sets[user_id][set_name]
+        save_sets(sets)
+        return jsonify({'success': True, 'sets': sets[user_id]})
+    
+    return jsonify({'success': False, 'error': 'Set not found'}), 404
 
 
 if __name__ == '__main__':

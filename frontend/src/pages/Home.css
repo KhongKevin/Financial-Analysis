@@ -252,6 +252,20 @@ body.dark-mode .expanded-chart {
   color: #fff !important;
 }
 
+.secondary-button.active-page {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4) !important;
+  font-weight: 800;
+  transform: scale(1.05);
+}
+
+.page-num-btn {
+  min-width: 48px;
+  padding: 0 !important;
+}
+
 @media (max-width: 768px) {
   .stock-header {
     flex-wrap: wrap;
