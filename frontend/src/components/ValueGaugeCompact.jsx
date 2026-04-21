@@ -57,7 +57,7 @@ function ValueGaugeCompact({ ticker, score, type = 'pe' }) {
           length: 0.6,
           strokeWidth: 0.05,
           iconScale: 1,
-          color: getPointerColor()
+          color: 'transparent'
         },
         limitMax: true,
         limitMin: true,
@@ -78,12 +78,29 @@ function ValueGaugeCompact({ ticker, score, type = 'pe' }) {
     }
 
     if (gaugeRef.current && typeof score === 'number') {
-      gaugeRef.current.set(score)
-      if (textFieldRef.current) textFieldRef.current.style.opacity = '1'
+      const clampedScore = Math.max(0, Math.min(100, score))
+      
+      const color = getPointerColor()
+      gaugeRef.current.setOptions({
+        pointer: { color }
+      })
+      
+      gaugeRef.current.set(clampedScore)
+      if (textFieldRef.current) {
+        textFieldRef.current.style.opacity = '1'
+        textFieldRef.current.style.visibility = 'visible'
+      }
       canvasRef.current.style.opacity = '1'
+      canvasRef.current.style.visibility = 'visible'
     } else if (gaugeRef.current) {
-      if (textFieldRef.current) textFieldRef.current.style.opacity = '0'
-      if (canvasRef.current) canvasRef.current.style.opacity = '0'
+      if (textFieldRef.current) {
+        textFieldRef.current.style.opacity = '0'
+        textFieldRef.current.style.visibility = 'hidden'
+      }
+      if (canvasRef.current) {
+        canvasRef.current.style.opacity = '0'
+        canvasRef.current.style.visibility = 'hidden'
+      }
     }
 
     return () => {

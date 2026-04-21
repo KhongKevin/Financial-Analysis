@@ -7,13 +7,15 @@ function Navigation({ darkMode, toggleDarkMode }) {
 
   const isMoreActive = location.pathname === '/about' || location.pathname === '/how-to-use' || location.pathname === '/sets'
   const isGaugesActive = location.pathname.startsWith('/gauges')
+  const isBacktestActive = location.pathname === '/backtest'
 
   return (
     <nav className={`navigation ${darkMode ? 'dark' : ''}`}>
       <div className="nav-title">
         {location.pathname === '/' ? 'Home' :
           isGaugesActive ? 'Gauges' :
-            location.pathname === '/charts' ? 'Charts' : 'Finance'}
+            location.pathname === '/charts' ? 'Charts' :
+              isBacktestActive ? 'Backtest' : 'Finance'}
       </div>
 
       <div className="nav-links-container">
@@ -38,6 +40,13 @@ function Navigation({ darkMode, toggleDarkMode }) {
               <polyline points="12 8 12 12 14 14"></polyline>
             </svg>
             CHARTS
+          </Link>
+
+          <Link to="/backtest" className={`nav-link ${isBacktestActive ? 'active' : ''}`}>
+            <svg className="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            BACKTEST
           </Link>
 
           <div className="nav-dropdown-container">

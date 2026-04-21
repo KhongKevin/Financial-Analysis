@@ -66,7 +66,7 @@ function ValueGauge({ ticker, score, details, type = 'pe' }) {
           length: 0.55,
           strokeWidth: 0.04,
           iconScale: 1,
-          color: getPointerColor()
+          color: 'transparent' // NEW: Start transparent to prevent origin artifact
         },
         limitMax: true,
         limitMin: true,
@@ -95,13 +95,31 @@ function ValueGauge({ ticker, score, details, type = 'pe' }) {
 
     // Update gauge value
     if (gaugeRef.current && typeof score === 'number') {
-      gaugeRef.current.set(score)
-      if (textFieldRef.current) textFieldRef.current.style.opacity = '1'
+      const clampedScore = Math.max(0, Math.min(100, score))
+      
+      // Update pointer color to be visible now that we have data
+      const color = getPointerColor()
+      gaugeRef.current.setOptions({
+        pointer: { color }
+      })
+      
+      gaugeRef.current.set(clampedScore)
+      if (textFieldRef.current) {
+        textFieldRef.current.style.opacity = '1'
+        textFieldRef.current.style.visibility = 'visible'
+      }
       canvasRef.current.style.opacity = '1'
+      canvasRef.current.style.visibility = 'visible'
     } else if (gaugeRef.current) {
       // Empty state
-      if (textFieldRef.current) textFieldRef.current.style.opacity = '0'
-      if (canvasRef.current) canvasRef.current.style.opacity = '0'
+      if (textFieldRef.current) {
+        textFieldRef.current.style.opacity = '0'
+        textFieldRef.current.style.visibility = 'hidden'
+      }
+      if (canvasRef.current) {
+        canvasRef.current.style.opacity = '0'
+        canvasRef.current.style.visibility = 'hidden'
+      }
     }
 
     return () => {

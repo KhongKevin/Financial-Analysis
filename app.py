@@ -537,6 +537,117 @@ def delete_set(set_name):
     return jsonify({'success': False, 'error': 'Set not found'}), 404
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Backtest Endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+
+SNAPSHOTS_FILE = 'DATA/backtest_snapshots.json'
+
+def load_snapshots():
+    if not os.path.exists(SNAPSHOTS_FILE):
+        return []
+    try:
+        with open(SNAPSHOTS_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_snapshots(data):
+    os.makedirs('DATA', exist_ok=True)
+    with open(SNAPSHOTS_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
+
+
+@app.route('/api/backtest/run', methods=['POST'])
+def backtest_run():
+    """
+    Run a backtest.
+    Body: {
+        tickers: ["AAPL", ...],
+        start_date: "2022-01-01",
+        lookback_years: 2,
+        forward_months: 12,
+        weight_sets: [{name, pe, peg, debt}, ...]
+    }
+    """
+    try:
+        from backtest import run_backtest
+        data = request.get_json()
+
+        tickers = data.get('tickers', [])
+        start_date = data.get('start_date', '')
+        lookback_years = int(data.get('lookback_years', 2))
+        forward_months = int(data.get('forward_months', 12))
+        weight_sets = data.get('weight_sets', [{'name': 'Default', 'pe': 70, 'peg': 20, 'debt': 10}])
+
+        if not tickers:
+            return jsonify({'success': False, 'error': 'No tickers provided'}), 400
+        if not start_date:
+            return jsonify({'success': False, 'error': 'start_date is required'}), 400
+
+        result = run_backtest(
+            tickers=tickers,
+            start_date=start_date,
+            lookback_years=lookback_years,
+            forward_months=forward_months,
+            weight_sets=weight_sets,
+        )
+
+        return jsonify({'success': True, **result})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/backtest/snapshots', methods=['GET'])
+def get_snapshots():
+    snapshots = load_snapshots()
+    return jsonify({'success': True, 'snapshots': snapshots})
+
+
+@app.route('/api/backtest/snapshots', methods=['POST'])
+def save_snapshot():
+    """
+    Save a backtest snapshot.
+    Body: { name, config, results, summary, weight_sets, as_of_date, lookback_years, forward_months }
+    """
+    try:
+        data = request.get_json()
+        name = data.get('name', 'Untitled')
+
+        snapshots = load_snapshots()
+        snapshot_id = str(int(datetime.now().timestamp() * 1000))
+
+        snapshot = {
+            'id': snapshot_id,
+            'name': name,
+            'created_at': datetime.now().isoformat(),
+            'as_of_date': data.get('as_of_date'),
+            'lookback_years': data.get('lookback_years'),
+            'forward_months': data.get('forward_months'),
+            'tickers': data.get('tickers', []),
+            'weight_sets': data.get('weight_sets', []),
+            'results': data.get('results', []),
+            'summary': data.get('summary', []),
+        }
+
+        snapshots.append(snapshot)
+        save_snapshots(snapshots)
+
+        return jsonify({'success': True, 'snapshot': snapshot, 'snapshots': snapshots})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/backtest/snapshots/<snapshot_id>', methods=['DELETE'])
+def delete_snapshot(snapshot_id):
+    snapshots = load_snapshots()
+    snapshots = [s for s in snapshots if s['id'] != snapshot_id]
+    save_snapshots(snapshots)
+    return jsonify({'success': True, 'snapshots': snapshots})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
 

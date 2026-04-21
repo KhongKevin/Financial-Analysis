@@ -7,6 +7,7 @@ import Charts from './pages/Charts'
 import About from './pages/About'
 import HowToUse from './pages/HowToUse'
 import Sets from './pages/Sets'
+import Backtest from './pages/Backtest'
 import './App.css'
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/how-to-use" element={<HowToUse />} />
           <Route path="/sets" element={<Sets />} />
+          <Route path="/backtest" element={<Backtest />} />
         </Routes>
       </div>
     </Router>
